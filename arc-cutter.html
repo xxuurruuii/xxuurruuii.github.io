@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>双输入Python程序运行器</title>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        header {
+            background: #2c3e50;
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+        
+        .description {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .main-content {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 25px;
+            gap: 25px;
+        }
+        
+        .input-section, .output-section {
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        h2 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eaeaea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .output-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 120px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 1rem;
+            resize: vertical;
+            margin-bottom: 15px;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        button:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        #output {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            min-height: 200px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap; /* 自动换行 */
+            word-wrap: break-word; /* 长单词换行 */
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+            line-height: 1.5;
+        }
+        
+        .copy-btn {
+            background: #27ae60;
+            padding: 8px 15px;
+            font-size: 0.9rem;
+        }
+        
+        .copy-btn:hover {
+            background: #219653;
+        }
+        
+        .copy-btn.copied {
+            background: #2ecc71;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            border-top: 1px solid #eaeaea;
+        }
+        
+        .btn-container {
+            display: flex;
+            gap: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .btn-container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Arcaea自由分段切蛇工具</h1>
+            <p class="description">输入音弧和分段比例，程序会将音弧按比例切割并输出。每一段的长度比例用逗号分隔，可以用分号代表连续相同长度的分段，如"3,3,3,3,2,2"也可以写成"3;4,2;2"，意思是将音弧按3:3:3:3:2:2的比例切割。</p>
+        </header>
+        
+        <div class="main-content">
+            <div class="input-section">
+                <h2>输入</h2>
+                
+                <div class="input-group">
+                    <label for="input1">音弧:</label>
+                    <textarea id="input1" placeholder="arc(76864,77256,0.00,1.00,sisi,1.00,0.00,0,none,false);">arc(76864,77256,0.00,1.00,sisi,1.00,0.00,0,none,false);</textarea>
+                </div>
+                
+                <div class="input-group">
+                    <label for="input2">切割比例:</label>
+                    <textarea id="input2" placeholder="3;4,2,2">3;4,2,2</textarea>
+                </div>
+                
+                <button id="run-btn">
+                    <i class="fas fa-play-circle"></i>
+                    <span>运行程序</span>
+                </button>
+            </div>
+            
+            <div class="output-section">
+                <div class="output-header">
+                    <h2>输出结果</h2>
+                    <button id="copy-btn" class="copy-btn">
+                        <i class="fas fa-copy"></i>
+                        <span>复制结果</span>
+                    </button>
+                </div>
+                <div id="output">等待运行...</div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Powered by Pyodide</p>
+        </div>
+    </div>
+
+    <script>
+        // 初始化Pyodide
+        let pyodide;
+        async function initializePyodide() {
+            const runButton = document.getElementById('run-btn');
+            const outputElement = document.getElementById('output');
+            
+            runButton.disabled = true;
+            runButton.innerHTML = '<span class="loading"></span> 加载Pyodide中...';
+            outputElement.textContent = '正在加载Python环境...';
+            
+            try {
+                pyodide = await loadPyodide();
+                outputElement.textContent = '环境加载完成！请输入内容并点击运行。';
+                runButton.disabled = false;
+                runButton.innerHTML = '<i class="fas fa-play-circle"></i><span>运行程序</span>';
+            } catch (error) {
+                outputElement.textContent = `加载失败: ${error.message}`;
+                runButton.innerHTML = '<i class="fas fa-play-circle"></i><span>运行程序</span>';
+            }
+        }
+        
+        // 运行Python代码
+        async function runPython() {
+            const input1 = document.getElementById('input1').value;
+            const input2 = document.getElementById('input2').value;
+            const outputElement = document.getElementById('output');
+            const runButton = document.getElementById('run-btn');
+            
+            runButton.disabled = true;
+            runButton.innerHTML = '<span class="loading"></span> 运行中...';
+            outputElement.textContent = '运行中...';
+            
+            try {
+                // 这里添加您的Python程序代码
+                // 现在可以接收两个输入
+                await pyodide.runPythonAsync(`
+                    import sys
+                    import math
+                    from io import StringIO
+                    
+                    # 捕获标准输出
+                    old_stdout = sys.stdout
+                    sys.stdout = mystdout = StringIO()
+                    
+                    # 这里是您的Python程序
+                    # 现在有两个输入：input1_text 和 input2_text
+                    input1_text = '''${input1.replace(/\\/g, '\\\\').replace(/'/g, '\\\'')}'''
+                    input2_text = '''${input2.replace(/\\/g, '\\\\').replace(/'/g, '\\\'')}'''
+                    
+                    # 示例处理函数：组合两个输入
+                    def process_inputs(input1, input2):
+                        #input1 arc(76864,77256,0.00,1.00,si,0.00,0.00,0,none,false);
+                        #input2 3;4,2,2
+                        input1=input1.strip()
+                        a=input2.split(',')
+                        count=[]
+                        for i in a:
+                            i=i+';1'
+                            j=list(map(int,i.split(';')))
+                            for _ in range(j[1]):count.append(j[0])
+                        n=sum(count)
+                        content=input1.split(')')[0].split('(')[1].split(',')
+                        starttime=int(content[0])
+                        endtime=int(content[1])
+                        x1=float(content[2])
+                        x2=float(content[3])
+                        easing=content[4]
+                        y1=float(content[5])
+                        y2=float(content[6])
+                        color=int(content[7])
+                        hitsound=content[8]
+                        arctype=content[9]
+
+                        def calculate_position(starttime: int, endtime: int, startx: float, endx: float, curtime: int, easing: str) -> float:
+                            """
+                            根据缓动类型计算在curtime时刻的x位置
+                            
+                            参数:
+                            starttime: 开始时间
+                            endtime: 结束时间
+                            startx: 起始x位置
+                            endx: 结束x位置
+                            curtime: 当前时间
+                            easing: 缓动类型 ('b':贝塞尔曲线, 's':直线, 'si':sin-in, 'so':sin-out)
+                            
+                            返回:
+                            float: 当前时间的x位置
+                            """
+                            # 计算时间进度比例 (0到1之间)
+                            total_duration = endtime - starttime
+                            if total_duration <= 0:
+                                return startx
+                            
+                            # 确保当前时间在范围内
+                            t = max(0, min(1, (curtime - starttime) / total_duration))
+                            
+                            # 根据缓动类型计算变换后的比例
+                            if easing == 's':  # 直线/线性
+                                t_transformed = t
+                            elif easing == 'si':  # sin-in 缓入
+                                t_transformed = math.sin((t * math.pi) / 2)
+                            elif easing == 'so':  # sin-out 缓出
+                                t_transformed = 1 - math.cos((t * math.pi) / 2)
+                            elif easing == 'b':  # 贝塞尔曲线 (使用二次贝塞尔)
+                                # 简单的二次贝塞尔曲线，控制点为(0.25, 0.1)和(0.25, 0.1)
+                                t_transformed = t * t * (3 - 2 * t)
+                            else:
+                                # 如果是不支持的缓动类型，默认使用线性
+                                t_transformed = t
+                            
+                            # 计算并返回x位置
+                            return startx + t_transformed * (endx - startx)
+
+                        if easing=='b':
+                            easingx,easingy='b','b'
+                        if easing=='s':
+                            easingx,easingy='s','s'
+                        if easing=='si':
+                            easingx,easingy='si','s'
+                        if easing=='so':
+                            easingx,easingy='so','s'
+                        if easing in ['sisi','siso','sosi','soso']:
+                            easingx,easingy=easing[:2],easing[2:]
+                        output=''
+                        for i in range(len(count)):
+                            _starttime=starttime+round((endtime-starttime)/n*sum(count[:i]))
+                            _endtime=starttime+round((endtime-starttime)/n*sum(count[:i+1]))
+                            _x1=round(calculate_position(starttime,endtime,x1,x2,_starttime,easingx),4)
+                            _x2=round(calculate_position(starttime,endtime,x1,x2,_endtime,easingx),4)
+                            _easing='s'
+                            _y1=round(calculate_position(starttime,endtime,y1,y2,_starttime,easingy),4)
+                            _y2=round(calculate_position(starttime,endtime,y1,y2,_endtime,easingy),4)
+                            _color=color
+                            _hitsound=hitsound
+                            _arctype=arctype
+                            output+=f"arc({_starttime},{_endtime},{_x1},{_x2},{_easing},{_y1},{_y2},{_color},{_hitsound},{_arctype});\\n"
+
+                        return output
+                    
+                    # 获取处理结果
+                    result = process_inputs(input1_text, input2_text)
+                    print(result)
+                    
+                    # 恢复标准输出
+                    sys.stdout = old_stdout
+                    output = mystdout.getvalue()
+                `);
+                
+                // 获取输出
+                let output = pyodide.runPython("output");
+                outputElement.textContent = output;
+            } catch (error) {
+                outputElement.textContent = `错误: ${error.message}`;
+            } finally {
+                runButton.disabled = false;
+                runButton.innerHTML = '<i class="fas fa-play-circle"></i><span>运行程序</span>';
+            }
+        }
+        
+        // 复制到剪贴板
+        function copyToClipboard() {
+            const outputElement = document.getElementById('output');
+            const copyButton = document.getElementById('copy-btn');
+            
+            // 创建文本区域元素
+            const textArea = document.createElement('textarea');
+            textArea.value = outputElement.textContent;
+            document.body.appendChild(textArea);
+            
+            // 选择并复制文本
+            textArea.select();
+            document.execCommand('copy');
+            
+            // 移除临时元素
+            document.body.removeChild(textArea);
+            
+            // 更新按钮状态
+            copyButton.classList.add('copied');
+            copyButton.innerHTML = '<i class="fas fa-check"></i><span>已复制!</span>';
+            
+            // 2秒后恢复按钮状态
+            setTimeout(() => {
+                copyButton.classList.remove('copied');
+                copyButton.innerHTML = '<i class="fas fa-copy"></i><span>复制结果</span>';
+            }, 2000);
+        }
+        
+        // 初始化并设置事件监听器
+        initializePyodide();
+        document.getElementById('run-btn').addEventListener('click', runPython);
+        document.getElementById('copy-btn').addEventListener('click', copyToClipboard);
+    </script>
+</body>
+</html>
